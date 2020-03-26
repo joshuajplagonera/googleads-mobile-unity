@@ -36,28 +36,24 @@ namespace GoogleMobileAds.iOS
         private IntPtr adLoaderClientPtr;
         private NativeAdTypes adTypes;
 
-        private Dictionary<string, Action<CustomNativeTemplateAd, string>>
-            customNativeTemplateCallbacks;
-
-        public AdLoaderClient(AdLoader unityAdLoader)
+        public AdLoaderClient(AdLoaderClientArgs clientArgs)
         {
             this.adLoaderClientPtr = (IntPtr)GCHandle.Alloc(this);
 
-            this.customNativeTemplateCallbacks = unityAdLoader.CustomNativeTemplateClickHandlers;
-            string[] templateIdsArray = new string[unityAdLoader.TemplateIds.Count];
-            unityAdLoader.TemplateIds.CopyTo(templateIdsArray);
+            string[] templateIdsArray = new string[clientArgs.TemplateIds.Count];
+            clientArgs.TemplateIds.CopyTo(templateIdsArray);
 
             this.adTypes = new NativeAdTypes();
             bool configureReturnUrlsForImageAssets = false;
 
-            if (unityAdLoader.AdTypes.Contains(NativeAdType.CustomTemplate))
+            if (clientArgs.AdTypes.Contains(NativeAdType.CustomTemplate))
             {
                 configureReturnUrlsForImageAssets = false;
                 adTypes.CustomTemplateAd = 1;
             }
             this.AdLoaderPtr = Externs.GADUCreateAdLoader(
                 this.adLoaderClientPtr,
-                unityAdLoader.AdUnitId,
+                clientArgs.AdUnitId,
                 templateIdsArray,
                 templateIdsArray.Length,
                 ref adTypes,
@@ -75,7 +71,9 @@ namespace GoogleMobileAds.iOS
         internal delegate void GADUAdLoaderDidFailToReceiveAdWithErrorCallback(
             IntPtr AdLoader, string error);
 
-        public event EventHandler<CustomNativeEventArgs> OnCustomNativeTemplateAdLoaded;
+        public event EventHandler<CustomNativeClientEventArgs> OnCustomNativeTemplateAdLoaded;
+
+        public event EventHandler<CustomNativeClientEventArgs> OnCustomNativeTemplateAdClicked;
 
         public event EventHandler<AdFailedToLoadEventArgs> OnAdFailedToLoad;
 
@@ -123,16 +121,32 @@ namespace GoogleMobileAds.iOS
             IntPtr adLoader, IntPtr nativeCustomTemplateAd, string templateID)
         {
             AdLoaderClient client = IntPtrToAdLoaderClient(adLoader);
-            Action<CustomNativeTemplateAd, string> clickHandler =
-                    client.customNativeTemplateCallbacks.ContainsKey(templateID) ?
-                    client.customNativeTemplateCallbacks[templateID] : null;
+            CustomNativeTemplateClient adClient = new CustomNativeTemplateClient(
+                nativeCustomTemplateAd);
+            if (client.OnCustomNativeTemplateAdClicked != null)
+            {
+                WeakReference weakClient = new WeakReference(adClient);
+                adClient.clickHandler = delegate(string assetName)
+                                    {
+                                        if (weakClient.IsAlive)
+                                        {
+                                            CustomNativeTemplateClient strongClient = weakClient.Target as CustomNativeTemplateClient;
+                                            CustomNativeClientEventArgs args = new CustomNativeClientEventArgs()
+                                            {
+                                                nativeAdClient = strongClient,
+                                                assetName = assetName
+                                            };
+                                            client.OnCustomNativeTemplateAdClicked(client, args);
+                                        }
+                                    };
+            }
 
             if (client.OnCustomNativeTemplateAdLoaded != null)
             {
-                CustomNativeEventArgs args = new CustomNativeEventArgs()
+                CustomNativeClientEventArgs args = new CustomNativeClientEventArgs()
                 {
-                    nativeAd = new CustomNativeTemplateAd(new CustomNativeTemplateClient(
-                        nativeCustomTemplateAd, clickHandler))
+                    nativeAdClient = adClient,
+                    assetName = null
                 };
                 client.OnCustomNativeTemplateAdLoaded(client, args);
             }
