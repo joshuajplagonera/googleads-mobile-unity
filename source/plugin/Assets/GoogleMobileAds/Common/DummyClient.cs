@@ -49,7 +49,9 @@ namespace GoogleMobileAds.Common
 
         public event EventHandler<AdValueEventArgs> OnPaidEvent;
 
-        public event EventHandler<CustomNativeEventArgs> OnCustomNativeTemplateAdLoaded;
+        public event EventHandler<CustomNativeClientEventArgs> OnCustomNativeTemplateAdLoaded;
+
+        public event EventHandler<CustomNativeClientEventArgs> OnCustomNativeTemplateAdClicked;
 #pragma warning restore 67
 
         public string UserId
@@ -71,7 +73,7 @@ namespace GoogleMobileAds.Common
             Debug.Log("Dummy " + MethodBase.GetCurrentMethod().Name);
         }
 
-        public void Initialize(Action<InitializationStatus> initCompleteAction)
+        public void Initialize(Action<IInitializationStatusClient> initCompleteAction)
         {
             Debug.Log("Dummy " + MethodBase.GetCurrentMethod().Name);
             initCompleteAction(null);
