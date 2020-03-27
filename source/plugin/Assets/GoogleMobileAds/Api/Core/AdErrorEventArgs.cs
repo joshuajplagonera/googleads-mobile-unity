@@ -1,4 +1,6 @@
-﻿// Licensed under the Apache License, Version 2.0 (the "License");
+// Copyright (C) 2018 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
@@ -12,18 +14,10 @@
 
 using System;
 
-using GoogleMobileAds.Api;
-
-namespace GoogleMobileAds.Common
+namespace GoogleMobileAds.Api
 {
-    public interface IAdLoaderClient
+    public class AdErrorEventArgs : EventArgs
     {
-        event EventHandler<AdFailedToLoadEventArgs> OnAdFailedToLoad;
-
-        event EventHandler<CustomNativeClientEventArgs> OnCustomNativeTemplateAdLoaded;
-
-        event EventHandler<CustomNativeClientEventArgs> OnCustomNativeTemplateAdClicked;
-
-        void LoadAd(AdRequest request);
+        public string Message { get; set; }
     }
 }
